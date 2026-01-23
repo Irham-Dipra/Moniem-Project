@@ -1,69 +1,129 @@
--- Database Setup Script for Science Point Coaching Management System
--- Run this script in your Supabase SQL Editor
 
--- Enable UUID extension (useful for modern web apps, though we'll keep INTEGER IDs for now to match legacy data if needed, but SERIAL is standard for Postgres)
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
--- 1. Students Table
-CREATE TABLE IF NOT EXISTS students (
-    id SERIAL PRIMARY KEY,
-    name TEXT NOT NULL,
-    father_name TEXT,
-    roll INTEGER,
-    school TEXT,
-    contact TEXT,
-    category TEXT, -- SSC or HSC
-    ssc_year INTEGER,
-    student_class TEXT, -- Renamed from 'class' to avoid keyword conflict
+-- 1. Roles Table
+CREATE TABLE IF NOT EXISTS roles (
+    role_id SERIAL PRIMARY KEY,
+    role_name VARCHAR(50) NOT NULL UNIQUE
+);
+
+-- 2. Users Table
+CREATE TABLE IF NOT EXISTS users (
+    user_id SERIAL PRIMARY KEY,
+    user_name VARCHAR(100) NOT NULL,
+    email VARCHAR(100) UNIQUE NOT NULL,
+    password_hash VARCHAR(255) NOT NULL,
+    role_id INTEGER REFERENCES roles(role_id) ON DELETE SET NULL
+);
+
+-- 3. Batch Table
+CREATE TABLE IF NOT EXISTS batch (
+    batch_id SERIAL PRIMARY KEY,
+    batch_name VARCHAR(100) NOT NULL
+);
+
+-- 4. Program Table
+CREATE TABLE IF NOT EXISTS program (
+    program_id SERIAL PRIMARY KEY,
+    program_name VARCHAR(100) NOT NULL,
+    batch_id INTEGER REFERENCES batch(batch_id) ON DELETE SET NULL,
+    monthly_fee DECIMAL(10, 2) DEFAULT 0,
+    start_date DATE,
+    end_date DATE
+);
+
+-- 5. Teacher Table
+CREATE TABLE IF NOT EXISTS teacher (
+    teacher_id SERIAL PRIMARY KEY,
+    full_name VARCHAR(100) NOT NULL,
+    contact VARCHAR(20),
+    user_id INTEGER UNIQUE REFERENCES users(user_id) ON DELETE CASCADE
+);
+
+-- 6. Teacher Program Enrollment Table
+CREATE TABLE IF NOT EXISTS teacher_program_enrollment (
+    teacher_id INTEGER REFERENCES teacher(teacher_id) ON DELETE CASCADE,
+    program_id INTEGER REFERENCES program(program_id) ON DELETE CASCADE,
+    field VARCHAR(100),
+    PRIMARY KEY (teacher_id, program_id)
+);
+
+-- 7. Student Table
+CREATE TABLE IF NOT EXISTS student (
+    student_id SERIAL PRIMARY KEY,
+    name VARCHAR(100) NOT NULL,
+    fathers_name VARCHAR(100),
+    school VARCHAR(100),
+    contact VARCHAR(20),
+    roll_no INTEGER,
+    class INTEGER,
+    user_id INTEGER UNIQUE REFERENCES users(user_id) ON DELETE SET NULL,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
--- Index for faster searching by roll/year
-CREATE INDEX idx_students_roll_year ON students(ssc_year, category, roll);
-
--- 2. Exams Table
-CREATE TABLE IF NOT EXISTS exams (
-    id SERIAL PRIMARY KEY,
-    type TEXT, -- Weekly Test, Monthly Test, etc.
-    number TEXT,
-    subject TEXT,
-    total_marks INTEGER,
-    category TEXT,
-    ssc_year INTEGER,
-    date DATE,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+-- 8. Enrollment Table (Links Students to Programs)
+CREATE TABLE IF NOT EXISTS enrollment (
+    enrollment_id SERIAL PRIMARY KEY,
+    student_id INTEGER REFERENCES student(student_id) ON DELETE CASCADE,
+    program_id INTEGER REFERENCES program(program_id) ON DELETE CASCADE,
+    enrollment_date DATE DEFAULT CURRENT_DATE,
+    status VARCHAR(20) DEFAULT 'active' -- e.g., 'active', 'completed', 'dropped'
 );
 
--- 3. Results Table
-CREATE TABLE IF NOT EXISTS results (
-    id SERIAL PRIMARY KEY,
-    exam_id INTEGER REFERENCES exams(id) ON DELETE CASCADE,
-    student_id INTEGER REFERENCES students(id) ON DELETE CASCADE,
-    score REAL DEFAULT 0,
-    written_score REAL DEFAULT 0,
-    mcq_score REAL DEFAULT 0,
-    percentage REAL,
-    grade TEXT,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    UNIQUE(exam_id, student_id) -- Prevent duplicate results for same exam/student
+-- 9. Exam Table
+CREATE TABLE IF NOT EXISTS exam (
+    exam_id SERIAL PRIMARY KEY,
+    program_id INTEGER REFERENCES program(program_id) ON DELETE CASCADE,
+    exam_name VARCHAR(100) NOT NULL,
+    exam_date DATE,
+    exam_type VARCHAR(50), -- e.g., 'Weekly', 'Monthly'
+    subject VARCHAR(100),
+    total_marks DECIMAL(10, 2) NOT NULL
 );
 
--- 4. Payments Table
-CREATE TABLE IF NOT EXISTS payments (
-    id SERIAL PRIMARY KEY,
-    student_id INTEGER REFERENCES students(id) ON DELETE CASCADE,
-    month TEXT,
-    year INTEGER,
-    due_amount REAL DEFAULT 0,
-    paid_amount REAL DEFAULT 0,
-    status TEXT DEFAULT 'due', -- 'due' or 'paid'
-    date DATE, -- Payment date
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    UNIQUE(student_id, month, year) -- Prevent duplicate payment records
+-- 10. Student Individual Result Table
+CREATE TABLE IF NOT EXISTS student_individual_result (
+    result_id SERIAL PRIMARY KEY,
+    enrollment_id INTEGER REFERENCES enrollment(enrollment_id) ON DELETE CASCADE,
+    exam_id INTEGER REFERENCES exam(exam_id) ON DELETE CASCADE,
+    written_marks DECIMAL(5, 2) DEFAULT 0,
+    mcq_marks DECIMAL(5, 2) DEFAULT 0,
+    total_score DECIMAL(5, 2) GENERATED ALWAYS AS (written_marks + mcq_marks) STORED, -- Auto-calculated if supported, otherwise remove GENERATED clause and insert manually
+    UNIQUE(enrollment_id, exam_id)
 );
 
--- 5. Create a function to update 'updated_at' timestamp
+-- Note: If your Postgres version doesn't support GENERATED ALWAYS AS ... STORED, use this definition instead:
+-- CREATE TABLE IF NOT EXISTS student_individual_result (
+--     result_id SERIAL PRIMARY KEY,
+--     enrollment_id INTEGER REFERENCES enrollment(enrollment_id) ON DELETE CASCADE,
+--     exam_id INTEGER REFERENCES exam(exam_id) ON DELETE CASCADE,
+--     written_marks DECIMAL(5, 2) DEFAULT 0,
+--     mcq_marks DECIMAL(5, 2) DEFAULT 0,
+--     total_score DECIMAL(5, 2),
+--     UNIQUE(enrollment_id, exam_id)
+-- );
+
+
+-- 11. Attendance Table
+CREATE TABLE IF NOT EXISTS attendance (
+    attendance_id SERIAL PRIMARY KEY,
+    enrollment_id INTEGER REFERENCES enrollment(enrollment_id) ON DELETE CASCADE,
+    status VARCHAR(20), -- e.g., 'Present', 'Absent', 'Late'
+    date DATE DEFAULT CURRENT_DATE
+);
+
+-- 12. Payment Table
+CREATE TABLE IF NOT EXISTS payment (
+    payment_id SERIAL PRIMARY KEY,
+    enrollment_id INTEGER REFERENCES enrollment(enrollment_id) ON DELETE CASCADE,
+    paid_amount DECIMAL(10, 2) DEFAULT 0,
+    due_amount DECIMAL(10, 2) DEFAULT 0,
+    status VARCHAR(20), -- e.g., 'Paid', 'Due', 'Partial'
+    payment_date DATE DEFAULT CURRENT_DATE
+);
+
+-- Function to handle updated_at timestamp for student table
 CREATE OR REPLACE FUNCTION update_modified_column()
 RETURNS TRIGGER AS $$
 BEGIN
@@ -72,8 +132,8 @@ BEGIN
 END;
 $$ language 'plpgsql';
 
--- Trigger for students table
-CREATE TRIGGER update_students_modtime
-    BEFORE UPDATE ON students
+-- Trigger for student table
+CREATE TRIGGER update_student_modtime
+    BEFORE UPDATE ON student
     FOR EACH ROW
     EXECUTE FUNCTION update_modified_column();
