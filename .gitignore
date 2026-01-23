@@ -1,0 +1,14 @@
+# Logs
+coaching_app.log
+
+# Database files
+coaching_database.db
+
+# SQL dumps
+database_setup.sql
+
+# Python copies / backups
+coaching_app 1(2) - Copy.py
+
+# Images / diagrams
+Database ER diagram (crow's foot) (2).png
