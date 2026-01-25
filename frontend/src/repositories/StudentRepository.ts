@@ -42,5 +42,41 @@ export const StudentRepository = {
     }
 
     return await response.json();
+  },
+
+  // 3. Get Single Student
+  async getStudentById(id: string) {
+    const response = await fetch(`${API_BASE_URL}/students/${id}`);
+    if (!response.ok) throw new Error("Failed to fetch student details");
+    return await response.json();
+  },
+
+  // 4. Update Student
+  async updateStudent(id: string, updates: any) {
+    const response = await fetch(`${API_BASE_URL}/students/${id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(updates),
+    });
+    if (!response.ok) throw new Error("Failed to update student");
+    return await response.json();
+  },
+
+  // 5. Get Enrollments
+  async getEnrollments(studentId: string) {
+    const response = await fetch(`${API_BASE_URL}/students/${studentId}/enrollments`);
+    if (!response.ok) throw new Error("Failed to fetch enrollments");
+    return await response.json();
+  },
+
+  // 6. Enroll Student
+  async enrollStudent(data: { student_id: number, program_id: number }) {
+    const response = await fetch(`${API_BASE_URL}/enrollments`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(data),
+    });
+    if (!response.ok) throw new Error("Failed to enroll student");
+    return await response.json();
   }
 }

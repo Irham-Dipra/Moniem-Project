@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
+import { Link } from 'react-router-dom';
 import { StudentRepository } from '../repositories/StudentRepository';
 import { Search, Filter, Plus, Eye, ChevronRight } from 'lucide-react';
 import CreateStudentModal from './CreateStudentModal';
@@ -112,9 +113,12 @@ const StudentList: React.FC = () => {
                                     <td className="p-4 text-gray-600 text-sm">{student.school || '-'}</td>
                                     <td className="p-4 text-gray-600 text-sm">{student.contact || '-'}</td>
                                     <td className="p-4 text-right">
-                                        <button className="text-gray-400 hover:text-blue-600 transition-colors p-2 rounded-full hover:bg-blue-50">
+                                        <Link
+                                            to={`/students/${student.student_id}`}
+                                            className="inline-block text-gray-400 hover:text-blue-600 transition-colors p-2 rounded-full hover:bg-blue-50"
+                                        >
                                             <ChevronRight size={20} />
-                                        </button>
+                                        </Link>
                                     </td>
                                 </tr>
                             ))

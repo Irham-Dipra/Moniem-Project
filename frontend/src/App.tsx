@@ -3,6 +3,7 @@ import Layout from './components/Layout';
 import Dashboard from './pages/Dashboard';
 import Programs from './pages/Programs';
 import StudentList from './components/StudentList';
+import StudentProfile from './pages/StudentProfile';
 
 function App() {
   return (
@@ -17,6 +18,7 @@ function App() {
           {/* Modules */}
           <Route path="/programs" element={<Programs />} />
           <Route path="/students" element={<StudentList />} />
+          <Route path="/students/:id" element={<StudentProfile />} />
 
           {/* Catch-all: Redirect to Home */}
           <Route path="*" element={<Navigate to="/" replace />} />

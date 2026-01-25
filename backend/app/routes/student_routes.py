@@ -1,12 +1,16 @@
 from fastapi import APIRouter
 from app.repositories.student_repository import StudentRepository
 from app.schemas.student import StudentCreate
+from app.repositories.enrollment_repository import EnrollmentRepository
+from app.schemas.enrollment import EnrollmentCreate, EnrollmentResponse
 
 # 1. Create a Router (like a mini-app for students)
 router = APIRouter()
 
 # 2. Add the Logic
+# 2. Add the Logic
 repo = StudentRepository()
+enrollment_repo = EnrollmentRepository()
 
 # 3. Define the "Endpoints" (URL paths)
 
@@ -27,3 +31,15 @@ def get_student(student_id: int):
 def update_student(student_id: int, student_data: dict):
     # We accept a dict so we can do partial updates
     return repo.update_student(student_id, student_data)
+
+# ==========================================
+# ENROLLMENT ENDPOINTS
+# ==========================================
+
+@router.get("/students/{student_id}/enrollments")
+def get_student_enrollments(student_id: int):
+    return enrollment_repo.get_by_student(student_id)
+
+@router.post("/enrollments")
+def enroll_student(enrollment: EnrollmentCreate):
+    return enrollment_repo.enroll_student(enrollment)
