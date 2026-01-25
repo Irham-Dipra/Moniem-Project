@@ -1,17 +1,30 @@
-import StudentList from './components/StudentList'
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import Layout from './components/Layout';
+import Dashboard from './pages/Dashboard';
+import Programs from './pages/Programs';
+import StudentList from './components/StudentList';
 
 function App() {
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col items-center">
-      <header className="w-full bg-blue-600 text-white p-6 shadow-md mb-8">
-        <h1 className="text-3xl font-bold text-center">Coaching Management Admin</h1>
-      </header>
-      
-      <main className="w-full max-w-4xl">
-        <StudentList />
-      </main>
-    </div>
-  )
+    <BrowserRouter>
+      <Routes>
+        {/* The Layout component wraps all these routes */}
+        <Route element={<Layout />}>
+
+          {/* Default Path: Redirect to Dashboard */}
+          <Route path="/" element={<Dashboard />} />
+
+          {/* Modules */}
+          <Route path="/programs" element={<Programs />} />
+          <Route path="/students" element={<StudentList />} />
+
+          {/* Catch-all: Redirect to Home */}
+          <Route path="*" element={<Navigate to="/" replace />} />
+
+        </Route>
+      </Routes>
+    </BrowserRouter>
+  );
 }
 
 export default App
