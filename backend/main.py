@@ -11,6 +11,22 @@ from app.routes.student_routes import router as student_router
 #    This creates the main object that will receive ALL web requests.
 app = FastAPI()
 
+# ==========================================
+# 4. CORS Details (Security Gate)
+# ==========================================
+# Browsers block requests between different ports (5173 vs 8000) by default.
+# We need to explicitly allow our Frontend URL.
+from fastapi.middleware.cors import CORSMiddleware
+
+app.add_middleware(
+    CORSMiddleware,
+    # Allow the React App running on this Port:
+    allow_origins=["http://localhost:5173"], 
+    allow_credentials=True,
+    allow_methods=["*"], # Allow all methods (GET, POST, etc.)
+    allow_headers=["*"], # Allow all headers
+)
+
 # 2. Base Endpoint (Health Check)
 #    This is a simple sanity check. If you go to http://localhost:8000/,
 #    and see this message, you know the server is alive.

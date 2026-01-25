@@ -2,32 +2,45 @@
 // Instead of writing database code inside every button or page (which gets messy),
 // we put all the "Student" related database commands here.
 
-import { supabase } from '../supabaseClient'
+// ==========================================
+// THE SWITCH: From Supabase Direct -> FastAPI
+// ==========================================
+// We are no longer using 'supabase' here. 
+// We are using standard web 'fetch' to talk to our Python Backend.
+
+const API_BASE_URL = "http://127.0.0.1:8000";
 
 export const StudentRepository = {
-  // Function to get the list of all students
-  // 'async' means this function takes time (network request) and we must wait for it.
+
+  // 1. Get All Students
   async getAllStudents() {
-    // translate to SQL: SELECT * FROM Student;
-    const { data, error } = await supabase
-      .from('Student') // The table name in Supabase
-      .select('*')     // Get all columns
+    // Call the Python API: GET /students
+    const response = await fetch(`${API_BASE_URL}/students`);
 
-    // If Supabase reports an issue (e.g., internet down), crash appropriately
-    if (error) throw error
+    // Check if the server said "OK"
+    if (!response.ok) {
+      throw new Error("Failed to fetch students from Backend");
+    }
 
-    // Give the list of students back to whoever asked for it
-    return data
+    // Return the JSON data (List of students)
+    return await response.json();
   },
 
-  // Function to create a new student
+  // 2. Add Student
   async addStudent(studentData: any) {
-    // translate to SQL: INSERT INTO Student (name, ...) VALUES (...);
-    const { data, error } = await supabase
-      .from('Student')
-      .insert([studentData]) // Supabase expects a list of rows to insert
+    // Call the Python API: POST /students
+    const response = await fetch(`${API_BASE_URL}/students`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(studentData),
+    });
 
-    if (error) throw error
-    return data
+    if (!response.ok) {
+      throw new Error("Failed to add student via Backend");
+    }
+
+    return await response.json();
   }
 }
