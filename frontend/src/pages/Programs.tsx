@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { ProgramRepository } from '../repositories/ProgramRepository';
+import CreateProgramModal from '../components/CreateProgramModal';
 import { Plus, Calendar, BookOpen } from 'lucide-react';
 
 interface Program {
@@ -87,6 +88,12 @@ const Programs: React.FC = () => {
                     <p className="text-gray-500">No programs found. Create your first one!</p>
                 </div>
             )}
+
+            {/* MODAL */}
+            <CreateProgramModal
+                isOpen={isModalOpen}
+                onClose={() => setIsModalOpen(false)}
+            />
         </div>
     );
 };
