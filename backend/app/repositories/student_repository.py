@@ -31,3 +31,21 @@ class StudentRepository:
         
         # Return only the 'data' part (ignoring status codes, etc.)
         return response.data[0]
+
+    def get_student_by_id(self, student_id: int):
+        response = supabase.table(self.table)\
+            .select("*")\
+            .eq("student_id", student_id)\
+            .execute()
+        return response.data[0] if response.data else None
+
+    def update_student(self, student_id: int, updates: dict):
+        # Handle field renaming for 'class_grade' -> 'class' if present
+        if 'class_grade' in updates:
+            updates['class'] = updates.pop('class_grade')
+            
+        response = supabase.table(self.table)\
+            .update(updates)\
+            .eq("student_id", student_id)\
+            .execute()
+        return response.data[0] if response.data else None
