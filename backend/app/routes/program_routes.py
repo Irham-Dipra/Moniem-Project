@@ -1,4 +1,4 @@
-from fastapi import APIRouter
+from fastapi import APIRouter, HTTPException
 from app.repositories.program_repository import ProgramRepository
 from app.schemas.program import ProgramCreate, BatchCreate
 
@@ -15,7 +15,10 @@ def get_batches():
 
 @router.post("/batches")
 def create_batch(batch: BatchCreate):
-    return repo.create_batch(batch)
+    try:
+        return repo.create_batch(batch)
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
 
 # ==========================================
 # PROGRAM ENDPOINTS
@@ -27,4 +30,7 @@ def get_programs():
 
 @router.post("/programs")
 def create_program(program: ProgramCreate):
-    return repo.create_program(program)
+    try:
+        return repo.create_program(program)
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
