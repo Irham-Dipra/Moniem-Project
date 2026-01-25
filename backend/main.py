@@ -39,3 +39,6 @@ def read_root():
 #    Now we plug it into the main app.
 #    It's like adding a "Student Department" sign to the building directory.
 app.include_router(student_router)
+
+from app.routes.program_routes import router as program_router
+app.include_router(program_router)
