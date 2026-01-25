@@ -82,15 +82,17 @@ const StudentList: React.FC = () => {
             </div>
 
             {/* DATA TABLE */}
-            <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-                <table className="w-full text-left border-collapse">
+            <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-x-auto">
+                <table className="w-full text-left border-collapse min-w-[1000px]">
                     <thead className="bg-gray-50 text-gray-600 text-xs uppercase font-semibold">
                         <tr>
+                            <th className="p-4 border-b">ID</th>
                             <th className="p-4 border-b">Student Name</th>
+                            <th className="p-4 border-b">Father's Name</th>
                             <th className="p-4 border-b">Roll No</th>
                             <th className="p-4 border-b">Class</th>
-                            <th className="p-4 border-b">Contact</th>
                             <th className="p-4 border-b">School</th>
+                            <th className="p-4 border-b">Contact</th>
                             <th className="p-4 border-b text-right">Actions</th>
                         </tr>
                     </thead>
@@ -98,18 +100,17 @@ const StudentList: React.FC = () => {
                         {filteredStudents.length > 0 ? (
                             filteredStudents.map((student: Student) => (
                                 <tr key={student.student_id} className="hover:bg-gray-50 transition-colors group">
-                                    <td className="p-4">
-                                        <div className="font-medium text-gray-900">{student.name}</div>
-                                        <div className="text-xs text-gray-500">{student.fathers_name ? `Father: ${student.fathers_name}` : ''}</div>
-                                    </td>
+                                    <td className="p-4 text-gray-500 text-sm">#{student.student_id}</td>
+                                    <td className="p-4 font-medium text-gray-900">{student.name}</td>
+                                    <td className="p-4 text-gray-600 text-sm">{student.fathers_name || '-'}</td>
                                     <td className="p-4 text-gray-600 font-mono text-sm">{student.roll_no}</td>
                                     <td className="p-4">
                                         <span className="bg-blue-50 text-blue-700 px-2 py-1 rounded-full text-xs font-bold">
                                             Class {student.class}
                                         </span>
                                     </td>
-                                    <td className="p-4 text-gray-600 text-sm">{student.contact || '-'}</td>
                                     <td className="p-4 text-gray-600 text-sm">{student.school || '-'}</td>
+                                    <td className="p-4 text-gray-600 text-sm">{student.contact || '-'}</td>
                                     <td className="p-4 text-right">
                                         <button className="text-gray-400 hover:text-blue-600 transition-colors p-2 rounded-full hover:bg-blue-50">
                                             <ChevronRight size={20} />
