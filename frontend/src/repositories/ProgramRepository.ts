@@ -29,6 +29,12 @@ export const ProgramRepository = {
         return await response.json();
     },
 
+    async getProgramById(id: string) {
+        const response = await fetch(`${API_BASE_URL}/programs/${id}`);
+        if (!response.ok) throw new Error("Failed to fetch program details");
+        return await response.json();
+    },
+
     async createProgram(programData: any) {
         const response = await fetch(`${API_BASE_URL}/programs`, {
             method: "POST",

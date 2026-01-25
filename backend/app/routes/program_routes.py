@@ -28,6 +28,10 @@ def create_batch(batch: BatchCreate):
 def get_programs():
     return repo.get_all_programs()
 
+@router.get("/programs/{program_id}")
+def get_program_details(program_id: int):
+    return repo.get_program_by_id(program_id)
+
 @router.post("/programs")
 def create_program(program: ProgramCreate):
     try:

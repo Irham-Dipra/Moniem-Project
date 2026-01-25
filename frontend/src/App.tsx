@@ -4,6 +4,7 @@ import Dashboard from './pages/Dashboard';
 import Programs from './pages/Programs';
 import StudentList from './components/StudentList';
 import StudentProfile from './pages/StudentProfile';
+import ProgramDetails from './pages/ProgramDetails';
 
 function App() {
   return (
@@ -17,6 +18,7 @@ function App() {
 
           {/* Modules */}
           <Route path="/programs" element={<Programs />} />
+          <Route path="/programs/:id" element={<ProgramDetails />} />
           <Route path="/students" element={<StudentList />} />
           <Route path="/students/:id" element={<StudentProfile />} />
 

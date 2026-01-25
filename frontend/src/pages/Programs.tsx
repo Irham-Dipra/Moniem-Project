@@ -2,7 +2,8 @@ import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { ProgramRepository } from '../repositories/ProgramRepository';
 import CreateProgramModal from '../components/CreateProgramModal';
-import { Plus, Calendar, BookOpen } from 'lucide-react';
+import { Plus, Users, BookOpen } from 'lucide-react';
+import { Link } from 'react-router-dom';
 
 interface Program {
     program_id: number;
@@ -13,6 +14,7 @@ interface Program {
     batch: {
         batch_name: string;
     };
+    enrollment?: { count: number }[]; // From Backend Count
 }
 
 const Programs: React.FC = () => {
@@ -64,8 +66,12 @@ const Programs: React.FC = () => {
 
                         <div className="space-y-2 mb-4">
                             <div className="flex items-center text-gray-500 text-sm">
-                                <Calendar size={16} className="mr-2" />
-                                <span>Starts: {program.start_date || 'TBD'}</span>
+                                <Users size={16} className="mr-2" />
+                                <span className="font-medium">
+                                    {program.enrollment && program.enrollment[0]?.count
+                                        ? `${program.enrollment[0].count} Students Enrolled`
+                                        : 'No Students Enrolled'}
+                                </span>
                             </div>
                         </div>
 
@@ -74,9 +80,12 @@ const Programs: React.FC = () => {
                                 <p className="text-xs text-gray-500 uppercase">Monthly Fee</p>
                                 <p className="text-lg font-bold text-gray-900">৳{program.monthly_fee}</p>
                             </div>
-                            <button className="text-blue-600 text-sm font-medium hover:underline">
+                            <Link
+                                to={`/programs/${program.program_id}`}
+                                className="text-blue-600 text-sm font-medium hover:underline"
+                            >
                                 View Details
-                            </button>
+                            </Link>
                         </div>
                     </div>
                 ))}

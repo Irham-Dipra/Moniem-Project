@@ -27,12 +27,37 @@ class ProgramRepository:
     # ==========================================
     
     def get_all_programs(self):
-        # FANCY SUPABASE TRICK: Relationship Joins
-        # By saying "*, batch(*)", we tell Supabase:
-        # "Get all program columns, AND go look up the connected 'batch' info."
-        # This way, the frontend gets { "program_name": "Physics", "batch": { "batch_name": "HSC 2024" } }
-        response = supabase.table(self.program_table).select("*, batch(*)").execute()
+        # FANCY SUPABASE TRICK: Relationship Joins + Counts
+        # enrollment(count) gives us a field "enrollment": [{"count": 5}]
+        response = supabase.table(self.program_table)\
+            .select("*, batch(*), enrollment(count)")\
+            .execute()
         return response.data
+
+    def get_program_by_id(self, program_id: int):
+        # Fetch detailed info:
+        # 1. Basic Program Info + Batch
+        # 2. Enrolled Students (via enrollment -> student)
+        # 3. Exam List
+        # 4. Teacher List (via teacher_program_enrollment -> teacher)
+        query = """
+            *,
+            batch(*),
+            enrollment(
+                *,
+                student(*),
+                payment(*)
+            ),
+            exam(*),
+            teacher_program_enrollment(
+                teacher(*)
+            )
+        """
+        response = supabase.table(self.program_table)\
+            .select(query)\
+            .eq("program_id", program_id)\
+            .execute()
+        return response.data[0] if response.data else None
 
     def create_program(self, program: ProgramCreate):
         # The 'program' object coming from the user already has 'batch_id'.
