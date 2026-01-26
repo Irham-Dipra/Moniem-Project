@@ -5,6 +5,8 @@ import Programs from './pages/Programs';
 import StudentList from './components/StudentList';
 import StudentProfile from './pages/StudentProfile';
 import ProgramDetails from './pages/ProgramDetails';
+import ExamDetails from './pages/ExamDetails';
+import Exams from './pages/Exams';
 
 function App() {
   return (
@@ -19,6 +21,11 @@ function App() {
           {/* Modules */}
           <Route path="/programs" element={<Programs />} />
           <Route path="/programs/:id" element={<ProgramDetails />} />
+
+          {/* Exams Route */}
+          <Route path="/exams" element={<Exams />} />
+          <Route path="/exams/:id" element={<ExamDetails />} />
+
           <Route path="/students" element={<StudentList />} />
           <Route path="/students/:id" element={<StudentProfile />} />
 
@@ -31,4 +38,4 @@ function App() {
   );
 }
 
-export default App
+export default App;

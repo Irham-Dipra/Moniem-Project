@@ -42,3 +42,6 @@ app.include_router(student_router)
 
 from app.routes.program_routes import router as program_router
 app.include_router(program_router)
+
+from app.routes.exam_routes import router as exam_router
+app.include_router(exam_router)

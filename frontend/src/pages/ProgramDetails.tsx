@@ -3,10 +3,13 @@ import { useParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { ProgramRepository } from '../repositories/ProgramRepository';
 import { Users, FileText, DollarSign, Calendar, GraduationCap, Clock } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import CreateExamModal from '../components/CreateExamModal';
 
 const ProgramDetails: React.FC = () => {
     const { id } = useParams<{ id: string }>();
     const [activeTab, setActiveTab] = useState<'students' | 'exams'>('students');
+    const [isExamModalOpen, setIsExamModalOpen] = useState(false);
 
     const { data: program, isLoading } = useQuery({
         queryKey: ['program', id],
@@ -102,8 +105,8 @@ const ProgramDetails: React.FC = () => {
                     <button
                         onClick={() => setActiveTab('students')}
                         className={`flex-1 py-4 text-sm font-medium text-center transition-colors ${activeTab === 'students'
-                                ? 'text-blue-600 border-b-2 border-blue-600 bg-blue-50/50'
-                                : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'
+                            ? 'text-blue-600 border-b-2 border-blue-600 bg-blue-50/50'
+                            : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'
                             }`}
                     >
                         Enrolled Students ({totalEnrolled})
@@ -111,8 +114,8 @@ const ProgramDetails: React.FC = () => {
                     <button
                         onClick={() => setActiveTab('exams')}
                         className={`flex-1 py-4 text-sm font-medium text-center transition-colors ${activeTab === 'exams'
-                                ? 'text-blue-600 border-b-2 border-blue-600 bg-blue-50/50'
-                                : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'
+                            ? 'text-blue-600 border-b-2 border-blue-600 bg-blue-50/50'
+                            : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'
                             }`}
                     >
                         Exams History ({totalExams})
@@ -165,7 +168,10 @@ const ProgramDetails: React.FC = () => {
                     {activeTab === 'exams' && (
                         <div>
                             <div className="flex justify-end mb-4">
-                                <button className="bg-blue-600 text-white px-3 py-1.5 rounded text-sm hover:bg-blue-700">
+                                <button
+                                    onClick={() => setIsExamModalOpen(true)}
+                                    className="bg-blue-600 text-white px-3 py-1.5 rounded text-sm hover:bg-blue-700"
+                                >
                                     + Schedule Exam
                                 </button>
                             </div>
@@ -176,11 +182,13 @@ const ProgramDetails: React.FC = () => {
                             ) : (
                                 <ul className="space-y-2">
                                     {program.exam?.map((exam: any) => (
-                                        <li key={exam.exam_id} className="border p-4 rounded-lg flex justify-between items-center">
-                                            <div>
-                                                <p className="font-bold text-gray-900">{exam.exam_name}</p>
-                                                <p className="text-xs text-gray-500">{exam.exam_date} • {exam.exam_type}</p>
-                                            </div>
+                                        <li key={exam.exam_id} className="border p-4 rounded-lg flex justify-between items-center hover:bg-gray-50 transition-colors">
+                                            <Link to={`/exams/${exam.exam_id}`} className="block flex-1">
+                                                <div>
+                                                    <p className="font-bold text-blue-600 hover:underline">{exam.exam_name}</p>
+                                                    <p className="text-xs text-gray-500">{exam.exam_date} • {exam.exam_type}</p>
+                                                </div>
+                                            </Link>
                                             <div className="text-right">
                                                 <p className="text-sm font-bold text-gray-700">Total Marks: {exam.total_marks}</p>
                                             </div>
@@ -188,6 +196,13 @@ const ProgramDetails: React.FC = () => {
                                     ))}
                                 </ul>
                             )}
+
+                            {/* Create Exam Modal */}
+                            <CreateExamModal
+                                isOpen={isExamModalOpen}
+                                onClose={() => setIsExamModalOpen(false)}
+                                programId={id!}
+                            />
                         </div>
                     )}
                 </div>
