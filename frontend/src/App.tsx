@@ -7,6 +7,7 @@ import StudentProfile from './pages/StudentProfile';
 import ProgramDetails from './pages/ProgramDetails';
 import ExamDetails from './pages/ExamDetails';
 import Exams from './pages/Exams';
+import Attendance from './pages/Attendance';
 
 function App() {
   return (
@@ -25,6 +26,8 @@ function App() {
           {/* Exams Route */}
           <Route path="/exams" element={<Exams />} />
           <Route path="/exams/:id" element={<ExamDetails />} />
+
+          <Route path="/attendance" element={<Attendance />} />
 
           <Route path="/students" element={<StudentList />} />
           <Route path="/students/:id" element={<StudentProfile />} />

@@ -5,17 +5,60 @@ import { ProgramRepository } from '../repositories/ProgramRepository';
 import { Users, FileText, DollarSign, Calendar, GraduationCap, Clock } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import CreateExamModal from '../components/CreateExamModal';
+import { AttendanceRepository } from '../repositories/AttendanceRepository';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 
 const ProgramDetails: React.FC = () => {
     const { id } = useParams<{ id: string }>();
-    const [activeTab, setActiveTab] = useState<'students' | 'exams'>('students');
+    const [activeTab, setActiveTab] = useState<'students' | 'exams' | 'attendance'>('students');
     const [isExamModalOpen, setIsExamModalOpen] = useState(false);
+    const [attendanceDate, setAttendanceDate] = useState(new Date().toISOString().split('T')[0]);
+    const [attendanceData, setAttendanceData] = useState<any[]>([]);
+    const queryClient = useQueryClient();
 
     const { data: program, isLoading } = useQuery({
         queryKey: ['program', id],
         queryFn: () => ProgramRepository.getProgramById(id!),
         enabled: !!id
     });
+
+    // Fetch Attendance when tab is active
+    const { data: fetchedAttendance, refetch: refetchAttendance } = useQuery({
+        queryKey: ['attendance', id, attendanceDate],
+        queryFn: () => AttendanceRepository.getDailyAttendance(id!, attendanceDate),
+        enabled: activeTab === 'attendance' && !!id
+    });
+
+    // Update local state when data loads
+    React.useEffect(() => {
+        if (fetchedAttendance) {
+            setAttendanceData(fetchedAttendance);
+        }
+    }, [fetchedAttendance]);
+
+    const attendanceMutation = useMutation({
+        mutationFn: (data: any) => AttendanceRepository.submitAttendance(parseInt(id!), attendanceDate, data),
+        onSuccess: () => {
+            alert("Attendance Saved!");
+            queryClient.invalidateQueries({ queryKey: ['attendance', id] });
+        }
+    });
+
+    const handleAttendanceChange = (enrollmentId: number, status: string) => {
+        setAttendanceData(prev => prev.map(item =>
+            item.enrollment_id === enrollmentId ? { ...item, status } : item
+        ));
+    };
+
+    const saveAttendance = () => {
+        const records = attendanceData.map(item => ({
+            enrollment_id: item.enrollment_id,
+            status: item.status, // Only send marked status
+            attendance_id: item.attendance_id,
+            date: attendanceDate
+        })).filter(r => r.status);
+        attendanceMutation.mutate(records);
+    };
 
     if (isLoading) return <div className="p-8">Loading details...</div>;
     if (!program) return <div className="p-8">Program not found</div>;
@@ -120,6 +163,15 @@ const ProgramDetails: React.FC = () => {
                     >
                         Exams History ({totalExams})
                     </button>
+                    <button
+                        onClick={() => setActiveTab('attendance')}
+                        className={`flex-1 py-4 text-sm font-medium text-center transition-colors ${activeTab === 'attendance'
+                            ? 'text-blue-600 border-b-2 border-blue-600 bg-blue-50/50'
+                            : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'
+                            }`}
+                    >
+                        Attendance
+                    </button>
                 </div>
 
                 <div className="p-6">
@@ -203,6 +255,73 @@ const ProgramDetails: React.FC = () => {
                                 onClose={() => setIsExamModalOpen(false)}
                                 programId={id!}
                             />
+                        </div>
+                    )}
+
+                    {/* ATTENDANCE TAB */}
+                    {activeTab === 'attendance' && (
+                        <div>
+                            <div className="flex justify-between items-center mb-6">
+                                <div className="flex items-center gap-2">
+                                    <label className="text-sm font-medium text-gray-700">Select Date:</label>
+                                    <input
+                                        type="date"
+                                        value={attendanceDate}
+                                        onChange={(e) => setAttendanceDate(e.target.value)}
+                                        className="border rounded px-3 py-1.5 text-gray-700 focus:outline-blue-500"
+                                    />
+                                </div>
+                                <button
+                                    onClick={saveAttendance}
+                                    className="bg-green-600 text-white px-6 py-2 rounded-lg font-medium hover:bg-green-700 shadow-sm"
+                                >
+                                    Save Attendance
+                                </button>
+                            </div>
+
+                            <div className="bg-white border rounded-xl overflow-hidden">
+                                <table className="w-full text-left">
+                                    <thead className="bg-gray-50 text-gray-500 text-xs uppercase font-semibold">
+                                        <tr>
+                                            <th className="p-4">Student Name</th>
+                                            <th className="p-4 text-center">Status</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody className="divide-y divide-gray-100">
+                                        {attendanceData.map((student: any) => (
+                                            <tr key={student.enrollment_id} className={`hover:bg-gray-50 ${!student.status ? 'opacity-60 bg-gray-50/50' : ''}`}>
+                                                <td className="p-4">
+                                                    <p className="font-medium text-gray-900">{student.name}</p>
+                                                    <p className="text-xs text-gray-400">Roll: {student.roll_no}</p>
+                                                </td>
+                                                <td className="p-4 flex justify-center items-center gap-3">
+                                                    {!student.status && (
+                                                        <span className="text-xs font-bold text-amber-600 bg-amber-50 px-2 py-1 rounded border border-amber-100 uppercase tracking-wide">
+                                                            Not Recorded
+                                                        </span>
+                                                    )}
+                                                    {['Present', 'Absent'].map((status) => (
+                                                        <button
+                                                            key={status}
+                                                            onClick={() => handleAttendanceChange(student.enrollment_id, status)}
+                                                            className={`px-3 py-1 text-sm rounded-full border transition-colors ${student.status === status
+                                                                    ? status === 'Absent' ? 'bg-red-100 text-red-700 border-red-200 font-bold'
+                                                                        : 'bg-green-100 text-green-700 border-green-200 font-bold'
+                                                                    : 'text-gray-500 border-transparent hover:bg-gray-100'
+                                                                }`}
+                                                        >
+                                                            {status}
+                                                        </button>
+                                                    ))}
+                                                </td>
+                                            </tr>
+                                        ))}
+                                        {attendanceData.length === 0 && (
+                                            <tr><td colSpan={2} className="p-8 text-center text-gray-400">No students found.</td></tr>
+                                        )}
+                                    </tbody>
+                                </table>
+                            </div>
                         </div>
                     )}
                 </div>
