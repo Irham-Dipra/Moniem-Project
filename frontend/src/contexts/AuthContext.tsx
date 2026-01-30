@@ -5,7 +5,8 @@ import type { Session, User } from '@supabase/supabase-js';
 type AuthContextType = {
     session: Session | null;
     user: User | null;
-    userName: string | null;            // New
+    userName: string | null;
+    dbUserId: number | null;            // New: The integer ID from users table
     userRole: string | null;
     userStatus: string | null;
     loading: boolean;
@@ -17,9 +18,10 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     const [session, setSession] = useState<Session | null>(null);
     const [user, setUser] = useState<User | null>(null);
-    const [userName, setUserName] = useState<string | null>(null); // New
+    const [userName, setUserName] = useState<string | null>(null);
+    const [dbUserId, setDbUserId] = useState<number | null>(null); // New
     const [userRole, setUserRole] = useState<string | null>(null);
-    const [userStatus, setUserStatus] = useState<string | null>(null); // 'pending', 'approved', 'rejected'
+    const [userStatus, setUserStatus] = useState<string | null>(null);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
@@ -42,6 +44,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 fetchUserProfile(session.user.id);
             } else {
                 setUserName(null);
+                setDbUserId(null);
                 setUserRole(null);
                 setUserStatus(null);
                 setLoading(false);
@@ -56,19 +59,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             // We link on 'auth_id' based on our new schema
             const { data, error } = await supabase
                 .from('users')
-                .select('role_id, status, user_name, roles(role_name)')
+                .select('user_id, role_id, status, user_name, roles(role_name)')
                 .eq('auth_id', userId)
                 .single();
 
             if (error) {
                 console.error("Error fetching user profile:", error);
             } else if (data) {
-                // Assuming data.roles is because of the join, or we might need to adjust based on exact return
-                // simple join syntax: select('..., roles(role_name)')
-                // data.roles will be an object { role_name: '...' } or array depending on relation 
-                // Let's assume One-to-One or Many-to-One returns object
-                const roleName = (data.roles as any)?.role_name || 'student'; // Default fallback
+                const roleName = (data.roles as any)?.role_name || 'student';
                 setUserName(data.user_name);
+                setDbUserId(data.user_id); // Set the DB ID
                 setUserRole(roleName.toLowerCase());
                 setUserStatus(data.status);
             }
@@ -82,12 +82,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const signOut = async () => {
         await supabase.auth.signOut();
         setUserName(null);
+        setDbUserId(null);
         setUserRole(null);
         setUserStatus(null);
     };
 
     return (
-        <AuthContext.Provider value={{ session, user, userName, userRole, userStatus, loading, signOut }}>
+        <AuthContext.Provider value={{ session, user, userName, dbUserId, userRole, userStatus, loading, signOut }}>
             {!loading && children}
         </AuthContext.Provider>
     );

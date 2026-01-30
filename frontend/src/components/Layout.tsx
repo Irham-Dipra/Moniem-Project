@@ -31,13 +31,19 @@ const Layout: React.FC = () => {
         { label: 'Settings', path: '/settings', icon: <Settings size={20} /> },
     ];
 
+    // Fallback display name logic
+    const displayName = userName || user?.user_metadata?.full_name || 'User';
+
     return (
         <div className="flex h-screen bg-gray-100">
             {/* SIDEBAR */}
             <aside className="w-64 bg-white shadow-md flex flex-col">
                 <div className="p-6 border-b">
-                    <h1 className="text-xl font-bold text-blue-600">Science Point</h1>
-                    <p className="text-xs text-gray-500">Admin Console</p>
+                    <Link to="/" className="block">
+                        <h1 className="text-xl font-bold text-blue-600 leading-tight">Science Point</h1>
+                        <p className="text-sm font-semibold text-gray-600">by Dr. Talha</p>
+                    </Link>
+                    <p className="text-xs text-gray-500 mt-1">Admin Console</p>
                 </div>
 
                 <nav className="flex-1 overflow-y-auto py-4">
@@ -73,10 +79,10 @@ const Layout: React.FC = () => {
                 <Link to="/profile" className="p-4 border-t hover:bg-gray-50 transition cursor-pointer block">
                     <div className="flex items-center gap-3">
                         <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-bold uppercase">
-                            {(userName?.[0] || user?.email?.[0] || 'U')}
+                            {(displayName?.[0] || user?.email?.[0] || 'U')}
                         </div>
                         <div className="overflow-hidden">
-                            <p className="text-sm font-medium truncate">{userName || 'User'}</p>
+                            <p className="text-sm font-medium truncate">{displayName}</p>
                             <p className="text-xs text-gray-500 truncate">{user?.email}</p>
                             <p className="text-[10px] text-gray-400 uppercase mt-0.5">{userRole}</p>
                         </div>

@@ -1,13 +1,32 @@
 import React from 'react';
 import { useAuth } from '../contexts/AuthContext';
-import { User, Mail, Shield, BadgeCheck } from 'lucide-react';
+import { useNavigate } from 'react-router-dom'; // Import useNavigate
+import { User, Mail, Shield, BadgeCheck, LogOut } from 'lucide-react'; // Import LogOut
 
 const UserProfile: React.FC = () => {
-    const { user, userName, userRole, userStatus } = useAuth();
+    const { user, userName, dbUserId, userRole, userStatus, signOut } = useAuth(); // Destructure signOut
+    const navigate = useNavigate();
+
+    const handleLogout = async () => {
+        await signOut();
+        navigate('/login');
+    };
+
+    // Fallback display name logic
+    const displayName = userName || user?.user_metadata?.full_name || 'User';
 
     return (
         <div className="max-w-4xl mx-auto">
-            <h1 className="text-2xl font-bold text-gray-800 mb-6">My Profile</h1>
+            <div className="flex justify-between items-center mb-6">
+                <h1 className="text-2xl font-bold text-gray-800">My Profile</h1>
+                <button
+                    onClick={handleLogout}
+                    className="flex items-center gap-2 px-4 py-2 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition font-medium"
+                >
+                    <LogOut size={18} />
+                    Sign Out
+                </button>
+            </div>
 
             <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
                 <div className="h-32 bg-gradient-to-r from-blue-500 to-indigo-600"></div>
@@ -21,13 +40,13 @@ const UserProfile: React.FC = () => {
                                 </div>
                             </div>
                             <div className="mb-1">
-                                <h2 className="text-2xl font-bold text-gray-900">{userName || 'User'}</h2>
+                                <h2 className="text-2xl font-bold text-gray-900">{displayName}</h2>
                                 <p className="text-gray-500">{user?.email}</p>
                             </div>
                         </div>
                         <div className={`px-4 py-1 rounded-full text-sm font-semibold capitalize border ${userStatus === 'approved'
-                                ? 'bg-green-50 text-green-700 border-green-200'
-                                : 'bg-yellow-50 text-yellow-700 border-yellow-200'
+                            ? 'bg-green-50 text-green-700 border-green-200'
+                            : 'bg-yellow-50 text-yellow-700 border-yellow-200'
                             }`}>
                             {userStatus}
                         </div>
@@ -55,7 +74,7 @@ const UserProfile: React.FC = () => {
                                     <label className="block text-xs font-medium text-gray-500 uppercase">User ID</label>
                                     <div className="flex items-center gap-2 mt-1 text-gray-800">
                                         <BadgeCheck size={18} className="text-blue-600" />
-                                        <span className="font-mono text-sm">{user?.id}</span>
+                                        <span className="font-mono text-sm">#{dbUserId || 'N/A'}</span>
                                     </div>
                                 </div>
                             </div>
