@@ -6,11 +6,11 @@ class PaymentBase(BaseModel):
     payment_id: Optional[int] = None
     enrollment_id: int
     paid_amount: float
-    due_amount: Optional[float] = 0
     status: str = 'Paid' 
     payment_date: str
     month: Optional[float] = None
     year: Optional[float] = None
+    transaction_group_id: Optional[str] = None
     payment_method: Optional[str] = "Cash"
     remarks: Optional[str] = None
 

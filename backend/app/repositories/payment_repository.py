@@ -11,60 +11,187 @@ class PaymentRepository:
         self.table = "payment"
         self.enrollment_table = "enrollment"
 
-    def create_payment(self, data: dict):
+    def create_bulk_payment(self, data_list: list):
         """
-        Creates a new payment record.
+        Creates multiple payment records in a SINGLE ATOMIC TRANSACTION.
         
+        Args:
+            data_list: List of dictionaries, each containing payment details for a specific month.
+            
         Algorithm:
-        1. Find the `enrollment_id` for the given student and program.
-           - We need this because payments are linked to an 'Enrollment', not just a raw student.
-           - This ensures we know exactly WHICH program they are paying for.
-        2. Construct the payment data object (amount, date, month, year, etc.).
-        3. Insert into the `payment` table.
+            1. Validate that all entries belong to the same student/program (optional but good practice).
+            2. Generate a single 'transaction_group_id' to link them all together.
+            3. Prepare the list of objects for Supabase.
+            4. Execute a single .insert([list]) call. Supabase/Postgres treats this as an atomic batch.
         """
-        print(f"Resolving enrollment for Student {data['student_id']} Program {data['program_id']}")
+        if not data_list:
+            raise Exception("No payment data provided")
+            
+        import uuid
+        # Generate one ID for the whole batch
+        group_id = str(uuid.uuid4())
         
-        # Step 1: Query the 'enrollment' table
-        # We look for a row where student_id AND program_id match the input.
-        # SQL Equiv: SELECT enrollment_id FROM enrollment WHERE student_id = ? AND program_id = ?
+        # Prepare batch payload
+        batch_payload = []
+        
+        print(f"Processing Bulk Payment of {len(data_list)} months...")
+        
+        for data in data_list:
+            # Resolve Enrollment ID (Optimization: Could be done once if UI sends enrollment_id directly, 
+            # but usually UI sends StudentID+ProgramID. We'll resolve strict.)
+            
+            # For efficiency, if the UI sends 'enrollment_id' we skip the query. 
+            # If not, we query. To keep it robust, let's assume UI sends enrollment_id or we fetch it.
+            # Let's start simple: UI *should* send enrollment_id. If not, we fetch it.
+            
+            eid = data.get('enrollment_id')
+            if not eid:
+                # Fetch logic repeated for robustness (or assume UI sends it)
+                enrollment = supabase.table(self.enrollment_table)\
+                    .select("enrollment_id")\
+                    .eq("student_id", data['student_id'])\
+                    .eq("program_id", data['program_id'])\
+                    .execute().data
+                if not enrollment:
+                    raise Exception(f"Enrollment not found for Student {data['student_id']} Program {data['program_id']}")
+                eid = enrollment[0]['enrollment_id']
+
+            record = {
+                "enrollment_id": eid,
+                "paid_amount": float(data['paid_amount']),
+                "payment_date": data['payment_date'],
+                "month": int(data['month']),
+                "year": int(data['year']),
+                "payment_method": data.get('payment_method'),
+                "remarks": data.get('remarks'),
+                "transaction_group_id": group_id
+            }
+            batch_payload.append(record)
+            
+        try:
+            # Atomic Batch Insert
+            print(f"Executing Batch Insert for Group {group_id}")
+            response = supabase.table(self.table).insert(batch_payload).execute()
+            return response.data
+        except Exception as e:
+            print(f"Bulk Insert Failed: {e}")
+            raise e
+
+    def get_payment_status(self, enrollment_id: int):
+        """
+        Calculates the current financial standing for a specific enrollment.
+        Used by the Frontend to determining which months are paid/unpaid.
+        """
+        # 1. Get Enrollment Details (Start Date, Fee)
         enrollment = supabase.table(self.enrollment_table)\
-            .select("enrollment_id")\
-            .eq("student_id", data['student_id'])\
-            .eq("program_id", data['program_id'])\
+            .select("enrollment_date, program(monthly_fee)")\
+            .eq("enrollment_id", enrollment_id)\
+            .single()\
             .execute().data
             
-        print(f"Enrollment found: {enrollment}")
-        
-        # Validation: If they aren't enrolled, we can't accept payment for this program.
         if not enrollment:
-            raise Exception(f"Enrollment not found for Student ID {data['student_id']} in Program ID {data['program_id']}")
+            return None
             
-        # Extract the ID from the result list (enrollment will be a list like [{'enrollment_id': 123}])
-        enrollment_id = enrollment[0]['enrollment_id']
+        start_date = datetime.strptime(enrollment['enrollment_date'], "%Y-%m-%d").date()
+        monthly_fee = float(enrollment['program']['monthly_fee'] or 0)
         
-        try:
-            # Step 2: Prepare the data dictionary for Supabase
-            payment_data = {
-                "enrollment_id": enrollment_id,
-                "paid_amount": float(data['paid_amount']),   # Ensure amount is a number
-                "payment_date": data['payment_date'],        # Strings like "2024-01-27" work for Date types
-                "month": int(data.get('month')),             # Month they are paying for (1-12)
-                "year": int(data.get('year')),               # Year they are paying for
-                "payment_method": data.get('payment_method'),# Cash, bKash, etc.
-                "remarks": data.get('remarks'),              # Optional notes
-                "status": 'Paid'                             # Default status
-            }
-            # print(f"Inserting Payment Data: {payment_data}")
+        # 2. Get All Payments for this enrollment
+        payments = supabase.table(self.table)\
+            .select("month, year, paid_amount")\
+            .eq("enrollment_id", enrollment_id)\
+            .execute().data
             
-            # Step 3: Insert into the database
-            response = supabase.table(self.table).insert(payment_data).execute()
-            # print(f"Insert Response: {response}")
+        today = date.today()
+        
+        # 3. Calculate Ledger
+        
+        # Determine the range: Start from Enrollment, End at MAX(Today, Last Payment Date)
+        ledger = []
+        total_due = 0
+        
+        # Helper to iterate months
+        curr = start_date.replace(day=1)
+        
+        # Find the latest payment date to ensure we cover advance payments
+        last_payment_date = today
+        if payments:
+            max_p_month = max(p['month'] for p in payments)
+            max_p_year = max(p['year'] for p in payments)
+            # Create a date object from max payment (approximate to end of that month)
+            # Handle December overlap
+            if max_p_month == 12:
+                 last_payment_date = date(max_p_year + 1, 1, 1)
+            else:
+                 last_payment_date = date(max_p_year, max_p_month + 1, 1) 
+                 # This sets it to first day of NEXT month, ensuring the loop covers the payment month.
+        
+        # End date is the later of Today or the last paid month
+        end = max(today.replace(day=1), last_payment_date)
+        
+        paid_up_to = None
+        
+        # We loop until we cover the range. 
+        # Note: If we just want to show "Active" dues, we might separate "Future Ledger" from "Due Ledger".
+        # But for "Greying out" logic, we need to know status of future months too.
+        
+        while curr < end or (curr.month == end.month and curr.year == end.year): # curr <= end logic carefully
+             # Actually, simpler: loop while curr < something? 
+             # Let's stick to standard curr <= end where end is inclusive of the last interesting month.
+             # If I set last_payment_date to "Start of Next Month of Max Payment", then `curr < last_payment_date` is clean.
             
-            # Return the created record
-            return response.data[0]
-        except Exception as e:
-            print(f"Error inserting payment: {e}")
-            raise e
+            if curr > end: break # Safety
+            
+            # Find payments for this specific month/year
+            month_payments = [p for p in payments if p['month'] == curr.month and p['year'] == curr.year]
+            paid_sum = sum(p['paid_amount'] for p in month_payments)
+            
+            is_fully_paid = paid_sum >= monthly_fee
+            
+            # Only calculate DUE if the month is in the past/present (active due)
+            is_past_or_present = (curr.year < today.year) or (curr.year == today.year and curr.month <= today.month)
+            
+            if is_fully_paid:
+                status = 'Paid'
+                # Only update "Paid Up To" if this is a continuous sequence (optional, but requested)
+                # Or just update it to the latest fully paid month? 
+                # "Paid Up To" usually implies a sequence. If I skip Feb and pay March, am I paid up to March? No.
+                # But simple logic: Update paid_up_to if curr > paid_up_to?
+                # Let's keep it simple: "Paid Up To" = Latest fully paid month.
+                # Or adhere to strict sequence? 
+                # Let's stick to: "Paid Up To" updates if current month is paid. (Handling gaps is complex).
+                paid_up_to = curr 
+            elif paid_sum > 0:
+                status = 'Partial'
+            else:
+                status = 'Unpaid'
+            
+            due_for_month = 0
+            if is_past_or_present:
+                 due_for_month = max(0, monthly_fee - paid_sum)
+            
+            ledger.append({
+                "month": curr.month,
+                "year": curr.year,
+                "fee": monthly_fee,
+                "paid": paid_sum,
+                "due": due_for_month, # Will be 0 for future months, which is correct
+                "status": status,
+                "is_future": not is_past_or_present
+            })
+            
+            total_due += due_for_month
+            
+            # Increment Month
+            if curr.month == 12:
+                curr = curr.replace(year=curr.year + 1, month=1)
+            else:
+                curr = curr.replace(month=curr.month + 1)
+                
+        return {
+            "total_due": total_due,
+            "paid_up_to": paid_up_to.strftime("%B %Y") if paid_up_to else "None",
+            "ledger": ledger # Frontend can use this to disable dropdowns
+        }
 
     def get_recent_payments(self, limit: int = 50):
         """
@@ -172,8 +299,7 @@ class PaymentRepository:
         # Step 2: Fetch Active Enrollments
         # We only care about 'Active' students for calculating current dues.
         enrollments = supabase.table(self.enrollment_table)\
-            .select("enrollment_id, enrollment_date, status, program(monthly_fee)")\
-            .eq("status", "Active")\
+            .select("enrollment_id, enrollment_date, program(monthly_fee)")\
             .execute().data
 
         # --- REVENUE CALCULATION ---

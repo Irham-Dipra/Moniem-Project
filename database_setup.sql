@@ -68,7 +68,8 @@ CREATE TABLE IF NOT EXISTS enrollment (
     student_id INTEGER REFERENCES student(student_id) ON DELETE CASCADE,
     program_id INTEGER REFERENCES program(program_id) ON DELETE CASCADE,
     enrollment_date DATE DEFAULT CURRENT_DATE,
-    status VARCHAR(20) DEFAULT 'active' -- e.g., 'active', 'completed', 'dropped'
+    enrollment_date DATE DEFAULT CURRENT_DATE,
+    -- status column dropped
 );
 
 -- 9. Exam Table
@@ -118,7 +119,11 @@ CREATE TABLE IF NOT EXISTS payment (
     payment_id SERIAL PRIMARY KEY,
     enrollment_id INTEGER REFERENCES enrollment(enrollment_id) ON DELETE CASCADE,
     paid_amount DECIMAL(10, 2) DEFAULT 0,
-    due_amount DECIMAL(10, 2) DEFAULT 0,
+    paid_amount DECIMAL(10, 2) DEFAULT 0,
+    -- due_amount dropped
+    month INTEGER,
+    year INTEGER,
+    transaction_group_id UUID, -- For grouping bulk payments
     status VARCHAR(20), -- e.g., 'Paid', 'Due', 'Partial'
     payment_date DATE DEFAULT CURRENT_DATE
 );

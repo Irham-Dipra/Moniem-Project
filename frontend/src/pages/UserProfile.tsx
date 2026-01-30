@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom'; // Import useNavigate
 import { User, Mail, Shield, BadgeCheck, LogOut } from 'lucide-react'; // Import LogOut
 
 const UserProfile: React.FC = () => {
-    const { user, userName, dbUserId, userRole, userStatus, signOut } = useAuth(); // Destructure signOut
+    const { user, userName, dbUserId, userRole, signOut } = useAuth(); // Destructure signOut
     const navigate = useNavigate();
 
     const handleLogout = async () => {
@@ -43,12 +43,6 @@ const UserProfile: React.FC = () => {
                                 <h2 className="text-2xl font-bold text-gray-900">{displayName}</h2>
                                 <p className="text-gray-500">{user?.email}</p>
                             </div>
-                        </div>
-                        <div className={`px-4 py-1 rounded-full text-sm font-semibold capitalize border ${userStatus === 'approved'
-                            ? 'bg-green-50 text-green-700 border-green-200'
-                            : 'bg-yellow-50 text-yellow-700 border-yellow-200'
-                            }`}>
-                            {userStatus}
                         </div>
                     </div>
 

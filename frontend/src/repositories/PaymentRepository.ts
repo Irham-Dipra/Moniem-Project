@@ -10,12 +10,34 @@ export const PaymentRepository = {
 
     // Record new payment
     async createPayment(payment: any) {
+        // Fallback for single payment, wrapping it in bulk structure or keeping separate?
+        // User backend now has 'create_bulk_payment'. 
+        // Let's implement 'createBulkPayment' for the new logic, and maybe keep this for legacy if needed, 
+        // or redirect. For now, we add the new ones.
         const response = await fetch(`${API_BASE_URL}/payments`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify(payment)
         });
         if (!response.ok) throw new Error("Failed to record payment");
+        return await response.json();
+    },
+
+    // New: Bulk Payment (Atomic)
+    async createBulkPayment(payments: any[]) {
+        const response = await fetch(`${API_BASE_URL}/payments/bulk`, {
+            method: "POST", // We need to ensure we have a route for this!
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payments)
+        });
+        if (!response.ok) throw new Error("Failed to record bulk payment");
+        return await response.json();
+    },
+
+    // New: Get Payment Status (Ledger)
+    async getPaymentStatus(enrollmentId: number) {
+        const response = await fetch(`${API_BASE_URL}/enrollments/${enrollmentId}/payment-status`);
+        if (!response.ok) throw new Error("Failed to fetch payment status");
         return await response.json();
     },
 

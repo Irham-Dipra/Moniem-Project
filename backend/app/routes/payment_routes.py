@@ -1,3 +1,4 @@
+from typing import List
 from fastapi import APIRouter, HTTPException
 from app.repositories.payment_repository import PaymentRepository
 from app.schemas.payment import PaymentCreate
@@ -12,7 +13,28 @@ def get_recent_payments():
 @router.post("/payments")
 def create_payment(payment: PaymentCreate):
     try:
-        return payment_repo.create_payment(payment.dict())
+        # Legacy Single: Wrap in list for atomic bulk logic or keep distinct?
+        # User wants Atomic. Let's redirect to bulk logic for safety if we want.
+        # But schema has transaction_group_id optional.
+        # Let's keep legacy working or use bulk under hood. 
+        # Repository has create_payment removed? No, I replaced it?
+        # Step 1725: I REPLACED create_payment with create_bulk_payment!
+        # So I MUST update this route to use create_bulk_payment but wrapping single item.
+        return payment_repo.create_bulk_payment([payment.dict()])[0]
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+@router.post("/payments/bulk")
+def create_bulk_payment(payments: List[PaymentCreate]):
+    try:
+        return payment_repo.create_bulk_payment([p.dict() for p in payments])
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+@router.get("/enrollments/{enrollment_id}/payment-status")
+def get_payment_status(enrollment_id: int):
+    try:
+        return payment_repo.get_payment_status(enrollment_id)
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
 

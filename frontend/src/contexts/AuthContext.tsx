@@ -6,9 +6,8 @@ type AuthContextType = {
     session: Session | null;
     user: User | null;
     userName: string | null;
-    dbUserId: number | null;            // New: The integer ID from users table
+    dbUserId: number | null;
     userRole: string | null;
-    userStatus: string | null;
     loading: boolean;
     signOut: () => Promise<void>;
 };
@@ -19,9 +18,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const [session, setSession] = useState<Session | null>(null);
     const [user, setUser] = useState<User | null>(null);
     const [userName, setUserName] = useState<string | null>(null);
-    const [dbUserId, setDbUserId] = useState<number | null>(null); // New
+    const [dbUserId, setDbUserId] = useState<number | null>(null);
     const [userRole, setUserRole] = useState<string | null>(null);
-    const [userStatus, setUserStatus] = useState<string | null>(null);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
@@ -29,8 +27,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         supabase.auth.getSession().then(({ data: { session } }) => {
             setSession(session);
             setUser(session?.user ?? null);
-            if (session?.user) {
-                fetchUserProfile(session.user.id);
+            if (session?.user?.email) {
+                fetchUserProfile(session.user.email);
             } else {
                 setLoading(false);
             }
@@ -40,13 +38,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
             setSession(session);
             setUser(session?.user ?? null);
-            if (session?.user) {
-                fetchUserProfile(session.user.id);
+            if (session?.user?.email) {
+                fetchUserProfile(session.user.email);
             } else {
                 setUserName(null);
                 setDbUserId(null);
                 setUserRole(null);
-                setUserStatus(null);
                 setLoading(false);
             }
         });
@@ -54,13 +51,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return () => subscription.unsubscribe();
     }, []);
 
-    const fetchUserProfile = async (userId: string) => {
+    const fetchUserProfile = async (email: string) => {
         try {
-            // We link on 'auth_id' based on our new schema
+            // Fallback to query by email since auth_id is missing in current DB schema
             const { data, error } = await supabase
                 .from('users')
-                .select('user_id, role_id, status, user_name, roles(role_name)')
-                .eq('auth_id', userId)
+                .select('user_id, role_id, user_name, roles(role_name)')
+                .eq('email', email)
                 .single();
 
             if (error) {
@@ -68,9 +65,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             } else if (data) {
                 const roleName = (data.roles as any)?.role_name || 'student';
                 setUserName(data.user_name);
-                setDbUserId(data.user_id); // Set the DB ID
+                setDbUserId(data.user_id);
                 setUserRole(roleName.toLowerCase());
-                setUserStatus(data.status);
             }
         } catch (err) {
             console.error("Unexpected error fetching profile:", err);
@@ -84,11 +80,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setUserName(null);
         setDbUserId(null);
         setUserRole(null);
-        setUserStatus(null);
     };
 
     return (
-        <AuthContext.Provider value={{ session, user, userName, dbUserId, userRole, userStatus, loading, signOut }}>
+        <AuthContext.Provider value={{ session, user, userName, dbUserId, userRole, loading, signOut }}>
             {!loading && children}
         </AuthContext.Provider>
     );

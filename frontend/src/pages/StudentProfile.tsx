@@ -211,9 +211,7 @@ const StudentProfile: React.FC = () => {
                                         <p className="font-bold text-gray-900">{enroll.program?.program_name || 'Unknown Program'}</p>
                                         <p className="text-sm text-gray-500">Joined: {enroll.enrollment_date || 'N/A'}</p>
                                     </div>
-                                    <span className="bg-green-100 text-green-700 px-3 py-1 rounded-full text-xs font-bold uppercase">
-                                        Active
-                                    </span>
+                                    {/* Status Column Dropped */}
                                 </div>
                             ))}
                             {(!enrollments || enrollments.length === 0) && (
