@@ -9,9 +9,11 @@ import {
     CreditCard,
     Settings
 } from 'lucide-react';
+import { useAuth } from '../contexts/AuthContext';
 
 const Layout: React.FC = () => {
     const location = useLocation();
+    const { user, userName, userRole } = useAuth();
 
     // Navigation Items Configuration
     const navItems = [
@@ -55,8 +57,8 @@ const Layout: React.FC = () => {
                                     <Link
                                         to={item.path!}
                                         className={`flex items-center px-6 py-3 text-sm font-medium transition-colors ${isActive
-                                                ? 'bg-blue-50 text-blue-600 border-r-4 border-blue-600'
-                                                : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+                                            ? 'bg-blue-50 text-blue-600 border-r-4 border-blue-600'
+                                            : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
                                             }`}
                                     >
                                         <span className="mr-3">{item.icon}</span>
@@ -68,17 +70,18 @@ const Layout: React.FC = () => {
                     </ul>
                 </nav>
 
-                <div className="p-4 border-t">
+                <Link to="/profile" className="p-4 border-t hover:bg-gray-50 transition cursor-pointer block">
                     <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center text-gray-600 font-bold">
-                            A
+                        <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-bold uppercase">
+                            {(userName?.[0] || user?.email?.[0] || 'U')}
                         </div>
-                        <div>
-                            <p className="text-sm font-medium">Administrator</p>
-                            <p className="text-xs text-gray-500">admin@sciencepoint.com</p>
+                        <div className="overflow-hidden">
+                            <p className="text-sm font-medium truncate">{userName || 'User'}</p>
+                            <p className="text-xs text-gray-500 truncate">{user?.email}</p>
+                            <p className="text-[10px] text-gray-400 uppercase mt-0.5">{userRole}</p>
                         </div>
                     </div>
-                </div>
+                </Link>
             </aside>
 
             {/* MAIN CONTENT AREA */}

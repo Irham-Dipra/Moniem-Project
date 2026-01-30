@@ -33,8 +33,9 @@ class StudentRepository:
         return response.data[0]
 
     def get_student_by_id(self, student_id: int):
+        # Join enrollment -> program to see what they are studying
         response = supabase.table(self.table)\
-            .select("*")\
+            .select("*, enrollment(*, program(*))")\
             .eq("student_id", student_id)\
             .execute()
         return response.data[0] if response.data else None

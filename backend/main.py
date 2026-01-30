@@ -48,3 +48,6 @@ app.include_router(exam_router)
 
 from app.routes.attendance_routes import router as attendance_router
 app.include_router(attendance_router)
+
+from app.routes.payment_routes import router as payment_router
+app.include_router(payment_router)

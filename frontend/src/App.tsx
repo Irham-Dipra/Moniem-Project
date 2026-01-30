@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate, Outlet } from 'react-router-dom';
 import Layout from './components/Layout';
 import Dashboard from './pages/Dashboard';
 import Programs from './pages/Programs';
@@ -8,36 +8,72 @@ import ProgramDetails from './pages/ProgramDetails';
 import ExamDetails from './pages/ExamDetails';
 import Exams from './pages/Exams';
 import Attendance from './pages/Attendance';
+import Finance from './pages/Finance';
+import Login from './pages/Login';
+import Signup from './pages/Signup';
+import Unauthorized from './pages/Unauthorized';
+import UserProfile from './pages/UserProfile'; // Import
+import { AuthProvider, useAuth } from './contexts/AuthContext';
+
+// Protected Route Wrapper
+const PrivateRoute = () => {
+  const { session, userStatus, loading } = useAuth();
+
+  if (loading) return <div className="h-screen flex items-center justify-center">Loading...</div>;
+
+  // 1. Must be logged in
+  if (!session) return <Navigate to="/login" replace />;
+
+  // 2. Must be approved (unless we decide to let pending users see *something*, but for now blockade)
+  if (userStatus === 'pending' || userStatus === 'rejected') {
+    return <Navigate to="/unauthorized" replace />;
+  }
+
+  // 3. Render child routes (Layout > Dashboard etc.)
+  return <Outlet />;
+};
 
 function App() {
   return (
-    <BrowserRouter>
-      <Routes>
-        {/* The Layout component wraps all these routes */}
-        <Route element={<Layout />}>
+    <AuthProvider>
+      <BrowserRouter>
+        <Routes>
+          {/* PUBLIC ROUTES */}
+          <Route path="/login" element={<Login />} />
+          <Route path="/signup" element={<Signup />} />
+          <Route path="/unauthorized" element={<Unauthorized />} />
 
-          {/* Default Path: Redirect to Dashboard */}
-          <Route path="/" element={<Dashboard />} />
+          {/* PROTECTED ROUTES */}
+          <Route element={<PrivateRoute />}>
+            <Route element={<Layout />}>
 
-          {/* Modules */}
-          <Route path="/programs" element={<Programs />} />
-          <Route path="/programs/:id" element={<ProgramDetails />} />
+              {/* Default Path: Redirect to Dashboard */}
+              <Route path="/" element={<Dashboard />} />
 
-          {/* Exams Route */}
-          <Route path="/exams" element={<Exams />} />
-          <Route path="/exams/:id" element={<ExamDetails />} />
+              {/* Modules */}
+              <Route path="/programs" element={<Programs />} />
+              <Route path="/programs/:id" element={<ProgramDetails />} />
 
-          <Route path="/attendance" element={<Attendance />} />
+              {/* Exams Route */}
+              <Route path="/exams" element={<Exams />} />
+              <Route path="/exams/:id" element={<ExamDetails />} />
 
-          <Route path="/students" element={<StudentList />} />
-          <Route path="/students/:id" element={<StudentProfile />} />
+              <Route path="/attendance" element={<Attendance />} />
+              <Route path="/finance" element={<Finance />} />
 
-          {/* Catch-all: Redirect to Home */}
-          <Route path="*" element={<Navigate to="/" replace />} />
+              <Route path="/students" element={<StudentList />} />
+              <Route path="/students/:id" element={<StudentProfile />} />
 
-        </Route>
-      </Routes>
-    </BrowserRouter>
+              <Route path="/profile" element={<UserProfile />} /> {/* New Route */}
+
+              {/* Catch-all: Redirect to Home (which then checks auth) */}
+              <Route path="*" element={<Navigate to="/" replace />} />
+
+            </Route>
+          </Route>
+        </Routes>
+      </BrowserRouter>
+    </AuthProvider>
   );
 }
 
